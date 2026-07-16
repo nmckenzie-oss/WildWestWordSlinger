@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+ <head><script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260714-01-1ce93b2"}');</script><script src="/_sdk/f432b76fb310b513.telemetry_sdk.js" integrity="sha512-9FJQ55EKmmqhyyik8BhrMVfm0+iYYfb8uOlRsjtkxJMEI97qOVEI4PnHohDjQAtvAep0IOEpdQ64eki0sz62ug=="></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wild West Wordslinger</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=Lexend:wght@400;500&amp;family=Rye&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <style>
+    * { font-family: 'Space Mono', monospace; }
+    .desc-font { font-family: 'Lexend', sans-serif; }
+    .title-font { font-family: 'Rye', cursive; letter-spacing: 2px; }
+    h1, h2 { font-family: 'Rye', cursive; letter-spacing: 2px; }
+    [data-template-id*="title"] { font-family: 'Rye', cursive; letter-spacing: 2px; }
+    body { image-rendering: pixelated; }
+    .pixel-border { border: 4px solid #4a2c0a; box-shadow: inset 0 0 0 2px #8b5e34, 0 4px 0 #2a1a05; }
+    .gunfire-effect { position: absolute; width: 2px; height: 2px; pointer-events: none; animation: gunfirePop 0.4s ease-out forwards; }
+    @keyframes gunfirePop { 0% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--gx), var(--gy)); } }
+    .enemy-wrap { position: absolute; width: 128px; height: 128px; cursor: crosshair; animation: enemyPop 0.2s ease-out; }
+    @keyframes enemyPop { from { transform: scale(0); } to { transform: scale(1); } }
+    .word-cell { cursor: pointer; transition: all 0.1s; border: 3px solid #4a2c0a; }
+    .word-cell:hover { background: #d4a03c !important; }
+    .word-cell.selected { background: #27ae60 !important; color: #fff; }
+    .word-cell.wrong { background: #c0392b !important; color: #fff; }
+    .ammo-pip { width: 12px; height: 24px; background: #f1c40f; border: 2px solid #7d6608; border-radius: 2px; }
+    .ammo-pip.empty { background: #3d2b0a; }
+    #game-area { cursor: crosshair; }
+    .screen { display: none; }
+    .screen.active { display: flex; }
+    .particle { position: absolute; width: 4px; height: 4px; pointer-events: none; animation: particleFly 0.5s ease-out forwards; }
+    @keyframes particleFly { to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .loot-result { animation: lootPop 0.3s ease-out; }
+    @keyframes lootPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .crosshair-overlay { position: fixed; pointer-events: none; z-index: 999; width: 32px; height: 32px; transform: translate(-50%, -50%); }
+  </style>
+  <script src="/_sdk/0179d719c431a79e.data_sdk.js" integrity="sha512-OsRvJkI5GkC3MJQcgotQYotpzrMSX415GiKKgvYdxQEEkzD/fdchShO2FMSy0PJr/tiINMXOk5Vl2zAgg6bUiA=="></script>
+  <script src="/_sdk/9432170dbd2ae0df.resizing_sdk.js" type="text/javascript" integrity="sha512-FeT+58sb1f9ejWPWFjCbJvTT+SDwGV+ngrHUnlO7TWEOoqwOLj6p256kO3vOL7DIWl1cIgrobiof8v2bOigwPg=="></script>
+ </head>
+ <body data-template-id="__page-root" class="w-full min-h-screen overflow-hidden"><!-- HOME SCREEN -->
+  <div id="home-screen" class="screen active flex-col items-center justify-center w-full" style="min-height:calc(100 * min(var(--vh,1vh),1vh))">
+   <header class="text-center mb-6">
+    <h1 data-template-id="game-title" class="canva-text title-font text-4xl font-bold tracking-wider"></h1>
+    <p data-template-id="game-subtitle" class="canva-text desc-font mt-2 text-lg"></p>
+    <p data-template-id="game-description" class="canva-text desc-font mt-3 text-sm opacity-80"></p>
+   </header>
+   <main class="w-full max-w-md px-4"><!-- Stats -->
+    <div class="flex justify-between mb-4 px-2">
+     <div class="text-center">
+      <p class="text-xs text-gray-400 desc-font">High Score</p>
+      <p id="home-highscore" class="text-2xl font-bold text-yellow-300">0</p>
+     </div>
+     <div class="text-center">
+      <p class="text-xs text-gray-400 desc-font">Total Coins</p>
+      <p id="home-coins" class="text-2xl font-bold text-yellow-300">🪙 0</p>
+     </div>
+    </div><!-- Buttons -->
+    <div class="grid grid-cols-2 gap-3 mb-4"><button data-template-id="shop-button" class="canva-button py-3 pixel-border rounded font-bold text-sm uppercase" onclick="openShop()"></button> <button data-template-id="inventory-button" class="canva-button py-3 pixel-border rounded font-bold text-sm uppercase" onclick="openInventory()"></button>
+    </div>
+    <div class="mb-4 p-3 rounded" style="background:#1a0a00;">
+     <label data-template-id="code-label" class="canva-text desc-font font-bold text-sm block mb-2">Class Code</label> <input id="code-input-field" data-template-id="code-input" type="text" class="w-full p-2 rounded text-center text-sm mb-2 font-bold" style="background:#0f0500;color:#f5c842;border:2px solid #8b5e34;"> <button data-template-id="code-submit-btn" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm uppercase" onclick="submitCode()"></button>
+    </div><button data-template-id="start-button" class="canva-button w-full py-3 pixel-border rounded font-bold text-xl uppercase tracking-widest" onclick="startGame()"></button>
+   </main>
+  </div><!-- SHOP MODAL -->
+  <div id="shop-modal" class="modal-overlay">
+   <div data-template-id="shop-panel" class="canva-card pixel-border p-5 rounded w-full max-w-sm mx-4">
+    <div class="flex justify-between items-center mb-4">
+     <h2 data-template-id="shop-title" class="canva-text title-font font-bold"></h2><button onclick="closeShop()" class="text-yellow-300 text-2xl font-bold">×</button>
+    </div>
+    <p id="shop-coins-display" class="text-sm text-yellow-300 mb-4 desc-font">🪙 0</p><!-- Bullet Upgrade -->
+    <div class="mb-4 p-3 rounded" style="background:#1a0a00;">
+     <p data-template-id="bullet-upgrade-label" class="canva-text desc-font font-bold text-sm mb-1"></p>
+     <p id="bullet-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Level 0 — Next: 10 🪙</p><button id="buy-bullet-btn" onclick="buyBulletUpgrade()" class="w-full py-2 pixel-border rounded font-bold text-sm" style="background:#5c3310;color:#f5c842;">Buy Upgrade</button>
+    </div><!-- Loot Box -->
+    <div class="p-3 rounded" style="background:#1a0a00;">
+     <p data-template-id="lootbox-label" class="canva-text desc-font font-bold text-sm mb-1"></p>
+     <p class="text-xs text-gray-400 desc-font mb-2">20 🪙 — Random crosshair or death effect!</p><button id="buy-loot-btn" onclick="buyLootBox()" class="w-full py-2 pixel-border rounded font-bold text-sm" style="background:#5c3310;color:#f5c842;">Open Loot Box</button>
+     <div id="loot-result" class="mt-3 text-center text-sm font-bold hidden"></div>
+    </div>
+   </div>
+  </div><!-- INVENTORY MODAL -->
+  <div id="inventory-modal" class="modal-overlay">
+   <div data-template-id="inventory-panel" class="canva-card pixel-border p-5 rounded w-full max-w-sm mx-4 max-h-[80vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+     <h2 data-template-id="inventory-title" class="canva-text title-font font-bold"></h2><button onclick="closeInventory()" class="text-yellow-300 text-2xl font-bold">×</button>
+    </div>
+    <h3 class="text-sm font-bold text-yellow-300 mb-2 desc-font">🎯 Crosshairs</h3>
+    <div id="crosshair-list" class="grid grid-cols-2 gap-2 mb-4"></div>
+    <h3 class="text-sm font-bold text-yellow-300 mb-2 desc-font">💥 Death Effects</h3>
+    <div id="effect-list" class="grid grid-cols-2 gap-2"></div>
+   </div>
+  </div><!-- GAME SCREEN -->
+  <div id="game-screen" class="screen flex-col w-full" style="min-height:calc(100 * min(var(--vh,1vh),1vh))">
+   <div class="flex items-center justify-between p-3 bg-black/60 relative z-10">
+    <div class="flex items-center gap-4">
+     <div>
+      <span class="text-xs text-gray-300">Kills:</span> <span id="kill-val" class="font-bold text-lg text-yellow-300">0</span>
+     </div>
+     <div>
+      <span class="text-xs text-gray-300">Score:</span> <span id="score-val" class="font-bold text-lg text-yellow-300">0</span>
+     </div>
+    </div>
+    <div class="flex items-center gap-4"><span class="text-lg">🪙</span><span id="coins-val" class="font-bold text-lg text-yellow-300">0</span>
+    </div>
+    <div class="flex items-center gap-2"><span class="text-sm">❤️</span><span id="lives-val" class="font-bold text-lg text-red-400">3</span>
+    </div>
+   </div>
+   <div class="flex items-center justify-between px-3 py-2 bg-black/40 relative z-10">
+    <div id="ammo-display" class="flex gap-1"></div><button data-template-id="reload-btn" class="canva-button px-4 py-1 pixel-border rounded font-bold text-sm uppercase" onclick="openReload()"></button>
+   </div>
+   <div id="game-area" class="relative flex-1 overflow-hidden">
+    <canvas id="bg-canvas" class="absolute inset-0 w-full h-full"></canvas>
+   </div><!-- Reload Overlay -->
+   <div id="reload-overlay" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div data-template-id="reload-panel" class="canva-card pixel-border p-4 rounded w-full max-w-sm">
+     <p id="reload-category" class="font-bold text-center mb-3 text-lg title-font"></p>
+     <div class="mb-2 text-center">
+      <p id="reload-score" class="font-bold text-lg" style="color:#f5c842;">+0 Points</p>
+     </div>
+     <div id="reload-grid" class="grid grid-cols-4 gap-2"></div>
+     <p data-template-id="reload-hint" class="canva-text desc-font text-xs text-center mt-3 opacity-70"></p>
+    </div>
+   </div><!-- Start Question Overlay -->
+   <div id="start-question-overlay" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+    <div data-template-id="start-question-panel" class="canva-card pixel-border p-4 rounded w-full max-w-sm">
+     <p id="start-question-category" class="font-bold text-center mb-3 text-lg title-font"></p>
+     <div id="start-question-grid" class="grid grid-cols-4 gap-2"></div>
+     <p data-template-id="start-question-hint" class="canva-text desc-font text-xs text-center mt-3 opacity-70"></p>
+    </div>
+   </div>
+  </div><!-- GAME OVER -->
+  <div id="gameover-screen" class="screen flex-col items-center justify-center w-full gap-4" style="min-height:calc(100 * min(var(--vh,1vh),1vh))">
+   <h2 data-template-id="gameover-title" class="canva-text title-font text-3xl font-bold"></h2>
+   <p id="final-score" class="text-2xl text-yellow-300 font-bold"></p>
+   <p id="final-coins" class="text-lg text-yellow-200"></p>
+   <p id="new-highscore" class="text-lg text-green-400 font-bold hidden">🏆 New High Score!</p><button data-template-id="restart-btn" class="canva-button px-6 py-3 pixel-border rounded font-bold text-lg uppercase" onclick="goHome()"></button>
+  </div><!-- Custom crosshair overlay -->
+  <div id="crosshair-cursor" class="crosshair-overlay hidden"></div>
+  <script src="/_sdk/0f620e7ef74834b7.editing_sdk.js" integrity="sha512-lIpWd9O7x1sKwBnjNH9J7/eTBLJGkf7n9/wFnpqN+1F13ihXMO5RKTyR0DpZa/r+dIVMSGocs367wfzX+y3hew=="></script>
+  <script>
+  // Game state
+  let killCount=0, overallScore=0, sessionCoins=0, lives=3, ammo=5, maxAmmo=5;
+  let gameActive=false, spawnInterval=null, reloadOpen=false, reloadStartTime=null;
+
+  // Persistent state
+  let playerData = null; // the SDK record
+  let highScore=0, totalCoins=0, bulletLevel=0;
+  let ownedCrosshairs=[], ownedEffects=[];
+  let equippedCrosshair='', equippedEffect='';
+
+  const ALL_CROSSHAIRS = ['Cross','Circle','Dot','Sheriff Badge','Horseshoe','Star','Skull','Bullseye'];
+  const ALL_EFFECTS = ['Smoke','Fire','Rainbow','Stars','Lightning','Hearts','Coins','Green Plasma','Blue Ice'];
+
+  const EFFECT_COLORS = {
+    'Smoke':['#888','#aaa','#ccc','#666'],
+    'Fire':['#ff4500','#ff6600','#ffaa00','#ff2200'],
+    'Rainbow':['#ff0000','#ff8800','#ffff00','#00ff00','#0088ff','#8800ff'],
+    'Stars':['#f5c842','#fff','#f39c12','#fffacd'],
+    'Lightning':['#00bfff','#87ceeb','#fff','#1e90ff'],
+    'Hearts':['#ff1493','#ff69b4','#ff6b81','#c0392b'],
+    'Coins':['#f5c842','#daa520','#ffd700','#b8860b'],
+    'Green Plasma':['#00ff00','#32cd32','#7cfc00','#228b22'],
+    'Blue Ice':['#00ffff','#87ceeb','#b0e0e6','#4169e1']
+  };
+
+  const ENEMY_SCORE_VALUE = 10;
+
+  // Data SDK
+  const dataHandler = {
+    onDataChanged(data) {
+      if (data.length > 0) {
+        playerData = data[0];
+        highScore = playerData.high_score || 0;
+        totalCoins = playerData.total_coins || 0;
+        bulletLevel = playerData.bullet_upgrade_level || 0;
+        ownedCrosshairs = playerData.owned_crosshairs ? playerData.owned_crosshairs.split(',').filter(Boolean) : [];
+        ownedEffects = playerData.owned_effects ? playerData.owned_effects.split(',').filter(Boolean) : [];
+        equippedCrosshair = playerData.equipped_crosshair || '';
+        equippedEffect = playerData.equipped_effect || '';
+      } else {
+        playerData = null;
+        highScore=0; totalCoins=0; bulletLevel=0;
+        ownedCrosshairs=[]; ownedEffects=[];
+        equippedCrosshair=''; equippedEffect='';
+      }
+      maxAmmo = 5 + bulletLevel;
+      updateHomeStats();
+    }
+  };
+
+  async function initData() {
+    const r = await window.dataSdk.init(dataHandler);
+    if (!r.isOk) console.error('SDK init failed');
+  }
+  initData();
+
+  async function saveData() {
+    const obj = {
+      high_score: highScore,
+      total_coins: totalCoins,
+      bullet_upgrade_level: bulletLevel,
+      owned_crosshairs: ownedCrosshairs.join(','),
+      owned_effects: ownedEffects.join(','),
+      equipped_crosshair: equippedCrosshair,
+      equipped_effect: equippedEffect
+    };
+    if (playerData) {
+      await window.dataSdk.update({...playerData, ...obj});
+    } else {
+      await window.dataSdk.create(obj);
+    }
+  }
+
+  function updateHomeStats() {
+    document.getElementById('home-highscore').textContent = highScore;
+    document.getElementById('home-coins').textContent = '🪙 ' + totalCoins;
+  }
+
+  // Screens
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function goHome() { showScreen('home-screen'); updateHomeStats(); }
+
+  function submitCode() {
+    const code = document.getElementById('code-input-field').value.trim();
+    if (!code) return;
+    // Code validation will be added later
+    // For now, just clear the input and show a placeholder message
+    document.getElementById('code-input-field').value = '';
+  }
+
+  // Shop
+  function openShop() {
+    document.getElementById('shop-modal').classList.add('open');
+    document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
+    updateBulletInfo();
+    document.getElementById('loot-result').classList.add('hidden');
+  }
+  function closeShop() { document.getElementById('shop-modal').classList.remove('open'); }
+
+  function updateBulletInfo() {
+    const cost = 10 * Math.pow(10, bulletLevel);
+    document.getElementById('bullet-upgrade-info').textContent = 'Level ' + bulletLevel + ' (Ammo: ' + (5+bulletLevel) + ') — Next: ' + cost + ' 🪙';
+  }
+
+  async function buyBulletUpgrade() {
+    const cost = 10 * Math.pow(10, bulletLevel);
+    if (totalCoins < cost) { showLootResult('Not enough coins!', '#c0392b'); return; }
+    totalCoins -= cost;
+    bulletLevel++;
+    maxAmmo = 5 + bulletLevel;
+    await saveData();
+    document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
+    updateBulletInfo();
+    showLootResult('Upgraded! Ammo: ' + maxAmmo, '#27ae60');
+  }
+
+  async function buyLootBox() {
+    if (totalCoins < 20) { showLootResult('Not enough coins!', '#c0392b'); return; }
+    totalCoins -= 20;
+    // Random pick from all cosmetics
+    const allItems = [...ALL_CROSSHAIRS.map(c=>({type:'crosshair',name:c})), ...ALL_EFFECTS.map(e=>({type:'effect',name:e}))];
+    const pick = allItems[Math.floor(Math.random()*allItems.length)];
+    const owned = pick.type==='crosshair' ? ownedCrosshairs : ownedEffects;
+    if (owned.includes(pick.name)) {
+      showLootResult('🎲 ' + pick.name + ' — Already owned! Better luck next time.', '#c0392b');
+    } else {
+      if (pick.type==='crosshair') ownedCrosshairs.push(pick.name);
+      else ownedEffects.push(pick.name);
+      const emoji = pick.type==='crosshair' ? '🎯' : '💥';
+      showLootResult(emoji + ' ' + pick.name + ' unlocked!', '#27ae60');
+    }
+    await saveData();
+    document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
+  }
+
+  function showLootResult(msg, color) {
+    const el = document.getElementById('loot-result');
+    el.textContent = msg; el.style.color = color;
+    el.classList.remove('hidden'); el.classList.add('loot-result');
+  }
+
+  // Inventory
+  function openInventory() {
+    document.getElementById('inventory-modal').classList.add('open');
+    renderInventory();
+  }
+  function closeInventory() { document.getElementById('inventory-modal').classList.remove('open'); }
+
+  function renderInventory() {
+    const cl = document.getElementById('crosshair-list');
+    const el = document.getElementById('effect-list');
+    cl.innerHTML = ''; el.innerHTML = '';
+    if (ownedCrosshairs.length === 0) cl.innerHTML = '<p class="text-xs text-gray-500 desc-font col-span-2">None yet</p>';
+    ownedCrosshairs.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'p-2 rounded text-xs font-bold desc-font ' + (equippedCrosshair===c ? 'ring-2 ring-yellow-400' : '');
+      btn.style.background = equippedCrosshair===c ? '#5c3310' : '#1a0a00';
+      btn.style.color = '#f5c842';
+      btn.textContent = (equippedCrosshair===c?'✓ ':'')+c;
+      btn.onclick = () => equipCrosshair(c);
+      cl.appendChild(btn);
+    });
+    if (ownedEffects.length === 0) el.innerHTML = '<p class="text-xs text-gray-500 desc-font col-span-2">None yet</p>';
+    ownedEffects.forEach(e => {
+      const btn = document.createElement('button');
+      btn.className = 'p-2 rounded text-xs font-bold desc-font ' + (equippedEffect===e ? 'ring-2 ring-yellow-400' : '');
+      btn.style.background = equippedEffect===e ? '#5c3310' : '#1a0a00';
+      btn.style.color = '#f5c842';
+      btn.textContent = (equippedEffect===e?'✓ ':'')+e;
+      btn.onclick = () => equipEffect(e);
+      el.appendChild(btn);
+    });
+  }
+
+  async function equipCrosshair(name) {
+    equippedCrosshair = equippedCrosshair===name ? '' : name;
+    await saveData(); renderInventory();
+  }
+  async function equipEffect(name) {
+    equippedEffect = equippedEffect===name ? '' : name;
+    await saveData(); renderInventory();
+  }
+
+  // Custom crosshair
+  function updateCrosshairCursor() {
+    const el = document.getElementById('crosshair-cursor');
+    if (!equippedCrosshair || !gameActive) { el.classList.add('hidden'); return; }
+    el.classList.remove('hidden');
+    el.innerHTML = getCrosshairSVG(equippedCrosshair);
+  }
+
+  function getCrosshairSVG(name) {
+    const svgs = {
+      'Cross':'<svg width="32" height="32"><line x1="16" y1="4" x2="16" y2="28" stroke="#f5c842" stroke-width="2"/><line x1="4" y1="16" x2="28" y2="16" stroke="#f5c842" stroke-width="2"/></svg>',
+      'Circle':'<svg width="32" height="32"><circle cx="16" cy="16" r="10" fill="none" stroke="#f5c842" stroke-width="2"/><circle cx="16" cy="16" r="2" fill="#f5c842"/></svg>',
+      'Dot':'<svg width="32" height="32"><circle cx="16" cy="16" r="4" fill="#f5c842"/></svg>',
+      'Sheriff Badge':'<svg width="32" height="32"><polygon points="16,4 18,12 26,12 20,17 22,25 16,20 10,25 12,17 6,12 14,12" fill="#f5c842"/></svg>',
+      'Horseshoe':'<svg width="32" height="32"><path d="M10,24 Q10,8 16,8 Q22,8 22,24" fill="none" stroke="#f5c842" stroke-width="3" stroke-linecap="round"/></svg>',
+      'Star':'<svg width="32" height="32"><polygon points="16,6 18,13 26,13 20,18 22,26 16,21 10,26 12,18 6,13 14,13" fill="none" stroke="#f5c842" stroke-width="1.5"/></svg>',
+      'Skull':'<svg width="32" height="32"><circle cx="16" cy="14" r="8" fill="#f5c842"/><rect x="12" y="22" width="8" height="4" fill="#f5c842"/><circle cx="13" cy="13" r="2" fill="#1a0a00"/><circle cx="19" cy="13" r="2" fill="#1a0a00"/></svg>',
+      'Bullseye':'<svg width="32" height="32"><circle cx="16" cy="16" r="12" fill="none" stroke="#f5c842" stroke-width="1.5"/><circle cx="16" cy="16" r="7" fill="none" stroke="#f5c842" stroke-width="1.5"/><circle cx="16" cy="16" r="2" fill="#f5c842"/></svg>'
+    };
+    return svgs[name] || '';
+  }
+
+  document.addEventListener('mousemove', e => {
+    const el = document.getElementById('crosshair-cursor');
+    if (!el.classList.contains('hidden')) {
+      el.style.left = e.clientX + 'px';
+      el.style.top = e.clientY + 'px';
+    }
+  });
+
+  // Death effect particles
+  function spawnDeathEffect(x, y, area) {
+    const colors = equippedEffect && EFFECT_COLORS[equippedEffect] ? EFFECT_COLORS[equippedEffect] : ['#f5c842','#f39c12','#e74c3c','#c0392b'];
+    for (let i = 0; i < 16; i++) {
+      const g = document.createElement('div');
+      g.className = 'gunfire-effect';
+      const angle = (Math.PI * 2 / 16) * i;
+      const dist = 15 + Math.random() * 40;
+      g.style.left = (x + 64) + 'px';
+      g.style.top = (y + 64) + 'px';
+      g.style.background = colors[Math.floor(Math.random() * colors.length)];
+      g.style.width = (2 + Math.random()*3) + 'px';
+      g.style.height = (2 + Math.random()*3) + 'px';
+      g.style.setProperty('--gx', Math.cos(angle) * dist + 'px');
+      g.style.setProperty('--gy', Math.sin(angle) * dist + 'px');
+      area.appendChild(g);
+      setTimeout(() => g.remove(), 400);
+    }
+  }
+
+  // Categories - Easy for 7 year olds
+  const categories = [
+    { prompt:"Colours", correct:["Red","Blue","Yellow","Green"], distractors:["Pizza","Chair","Clock","Socks","Dance","Book","Spoon","Happy","Snow","Beach","Music","Dream"] },
+    { prompt:"Animals", correct:["Dog","Cat","Bird","Fish"], distractors:["Car","House","Tree","Shoe","Ball","Cup","Fork","Plate","Door","Star","Moon","Cloud"] },
+    { prompt:"Fruits", correct:["Apple","Banana","Orange","Strawberry"], distractors:["Bread","Milk","Egg","Cheese","Rice","Bean","Salt","Pepper","Meat","Soup","Juice","Cake"] },
+    { prompt:"Things at the Beach", correct:["Sand","Water","Shell","Crab"], distractors:["Snow","Rock","Dirt","Leaf","Tree","Flower","Grass","Branch","Root","Weed","Moss","Vine"] },
+    { prompt:"Body Parts", correct:["Head","Arm","Leg","Foot"], distractors:["Toe","Ear","Nose","Hand","Eye","Chin","Hair","Smile","Laugh","Jump","Run","Dance"] },
+    { prompt:"Toys", correct:["Ball","Doll","Bike","Kite"], distractors:["Sock","Hat","Coat","Shoe","Belt","Shirt","Pants","Tie","Glove","Scarf","Boot","Bag"] },
+  ];
+
+  const enemySprites = [[
+    "................................","....333333333333333333........","....333333333333333333........","....333333333333333333........","....333333333333333333........","....333333333333333333........","....333311111111333333........","....333311111111333333........","....333311.11.11333333........","....333311111111333333........","....333311111111333333........","....333322222222333333........","....3332222..2222333333.......","....3332222..2222333333.......","....3332222..2222333333.......","....333244444444333333........","....333244444444333333........","....333244..4444333333........","....333244..4444333333........","....333244444444333333........","....333244444444333333........","....333255555555333333........","....333255555555333333........","....333255555555333333........","....333255555555333333........","....333255555555333333........","....33325555.5555333333.......","....33325555.5555333333.......","....333255555555333333........","....333..5555555..333333......","....333..5555555..333333......","................................"
+  ]];
+  const palettes = [{'1':'#f5c842','2':'#a73030','3':'#3d2200','4':'#8b5e34','5':'#c97622'}];
+
+  function drawEnemy(canvas, idx) {
+    const ctx=canvas.getContext('2d'); canvas.width=128; canvas.height=128;
+    const sprite=enemySprites[idx], pal=palettes[idx], px=4;
+    for(let y=0;y<32;y++) for(let x=0;x<32;x++){const ch=sprite[y][x];if(ch!=='.'){ctx.fillStyle=pal[ch]||'#000';ctx.fillRect(x*px,y*px,px,px);}}
+  }
+
+  function drawBackground() {
+    const canvas=document.getElementById('bg-canvas');
+    const rect=canvas.parentElement.getBoundingClientRect();
+    canvas.width=rect.width;canvas.height=rect.height;
+    const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+    const sky=ctx.createLinearGradient(0,0,0,h*0.6);
+    sky.addColorStop(0,'#e8a838');sky.addColorStop(1,'#f4d79e');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h*0.6);
+    ctx.fillStyle='#d4892e';ctx.beginPath();ctx.ellipse(w*0.2,h*0.35,w*0.3,h*0.15,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#c97622';ctx.beginPath();ctx.ellipse(w*0.8,h*0.4,w*0.35,h*0.12,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#c4a35a';ctx.fillRect(0,h*0.6,w,h*0.4);
+    ctx.fillStyle='#a8883e';ctx.fillRect(0,h*0.6,w,4);
+    ctx.fillStyle='#f5c842';ctx.beginPath();ctx.arc(w*0.85,h*0.08,35,0,Math.PI*2);ctx.fill();
+  }
+
+  function startGame() {
+    killCount=0; overallScore=0; sessionCoins=0; lives=3;
+    ammo=maxAmmo; gameActive=false; reloadOpen=false;
+    updateHUD(); showScreen('game-screen');
+    const area=document.getElementById('game-area');
+    area.querySelectorAll('.enemy-wrap').forEach(e=>e.remove());
+    document.getElementById('reload-overlay').classList.add('hidden');
+    setTimeout(drawBackground,50);
+    updateCrosshairCursor();
+    // Show start question
+    showStartQuestion();
+  }
+
+  function getSpawnDelay() {
+    // Progressively increase difficulty: spawn delay decreases as score increases
+    // At score 0: 1400ms, at score 500: 700ms, at score 1000+: 400ms
+    const baseTier = Math.floor(overallScore / 250);
+    return Math.max(400, 1400 - baseTier * 100);
+  }
+
+  function getEnemyLifetime() {
+    // Enemies disappear faster as score increases
+    // At score 0: 4200ms, at score 500: 3000ms, at score 1000+: 1800ms
+    const baseTier = Math.floor(overallScore / 250);
+    return Math.max(1800, 4200 - baseTier * 100);
+  }
+
+  function showStartQuestion() {
+    const cat=categories[Math.floor(Math.random()*categories.length)];
+    document.getElementById('start-question-category').textContent=cat.prompt;
+    const shuffled=[...cat.distractors].sort(()=>Math.random()-0.5);
+    const words=[...cat.correct,...shuffled.slice(0,12)].sort(()=>Math.random()-0.5);
+    const grid=document.getElementById('start-question-grid');grid.innerHTML='';
+    let found=0;
+    words.slice(0,16).forEach(w=>{
+      const cell=document.createElement('button');
+      cell.className='word-cell p-2 text-xs text-center rounded font-bold';cell.style.background='#f5deb3';cell.textContent=w;
+      cell.addEventListener('click',()=>{
+        if(cell.classList.contains('selected'))return;
+        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){document.getElementById('start-question-overlay').classList.add('hidden');startEnemySpawning();}}
+        else{cell.classList.add('wrong');setTimeout(()=>showStartQuestion(),600);}
+      });
+      grid.appendChild(cell);
+    });
+    document.getElementById('start-question-overlay').classList.remove('hidden');
+  }
+
+  function startEnemySpawning() {
+    // Begin with initial spawn delay
+    gameActive = true;
+    spawnInterval = setInterval(spawnEnemy, getSpawnDelay());
+  }
+
+  function updateHUD() {
+    document.getElementById('kill-val').textContent=killCount;
+    document.getElementById('score-val').textContent=overallScore;
+    document.getElementById('coins-val').textContent=sessionCoins;
+    document.getElementById('lives-val').textContent=lives;
+    const ad=document.getElementById('ammo-display');ad.innerHTML='';
+    for(let i=0;i<maxAmmo;i++){const p=document.createElement('div');p.className='ammo-pip'+(i>=ammo?' empty':'');ad.appendChild(p);}
+  }
+
+  function spawnEnemy() {
+    if(!gameActive)return;
+    const area=document.getElementById('game-area'),rect=area.getBoundingClientRect();
+    const wrap=document.createElement('div');wrap.className='enemy-wrap';
+    const canvas=document.createElement('canvas');canvas.width=128;canvas.height=128;canvas.style.width='128px';canvas.style.height='128px';
+    drawEnemy(canvas,0);wrap.appendChild(canvas);
+    wrap.style.left=Math.random()*(rect.width-150)+'px';
+    wrap.style.top=Math.random()*(rect.height-150)+'px';
+    wrap.addEventListener('click',()=>shootEnemy(wrap));
+    area.appendChild(wrap);
+    const lifetime = getEnemyLifetime();
+    setTimeout(()=>{if(wrap.parentNode&&!wrap.dataset.dead){wrap.remove();if(gameActive){lives--;updateHUD();if(lives<=0)endGame();}}},lifetime);
+  }
+
+  function shootEnemy(el) {
+    if(!gameActive||ammo<=0)return;
+    ammo--;el.dataset.dead='1';
+    const x=parseInt(el.style.left),y=parseInt(el.style.top);
+    spawnDeathEffect(x,y,document.getElementById('game-area'));
+    el.style.transition='transform 0.25s, opacity 0.25s';
+    el.style.transform='scale(0) rotate(90deg)';el.style.opacity='0';
+    killCount++;overallScore+=ENEMY_SCORE_VALUE;sessionCoins+=5;
+    updateHUD();updateEnemySpawning();setTimeout(()=>el.remove(),300);
+  }
+
+  async function endGame() {
+    gameActive=false;clearInterval(spawnInterval);
+    document.getElementById('crosshair-cursor').classList.add('hidden');
+    totalCoins+=sessionCoins;
+    const newHigh = overallScore > highScore;
+    if(newHigh) highScore=overallScore;
+    await saveData();
+    document.getElementById('final-score').textContent='Score: '+overallScore+' (Kills: '+killCount+')';
+    document.getElementById('final-coins').textContent='🪙 '+sessionCoins+' coins earned';
+    document.getElementById('new-highscore').classList.toggle('hidden',!newHigh);
+    showScreen('gameover-screen');
+  }
+
+  function updateEnemySpawning() {
+    // Recalculate spawn rate based on current score
+    if(gameActive && spawnInterval) {
+      clearInterval(spawnInterval);
+      spawnInterval = setInterval(spawnEnemy, getSpawnDelay());
+    }
+  }
+
+  function openReload() {
+    if(reloadOpen||ammo===maxAmmo)return;
+    reloadOpen=true;gameActive=false;clearInterval(spawnInterval);
+    reloadStartTime=Date.now();
+    document.getElementById('reload-overlay').classList.remove('hidden');
+    generateGrid();
+  }
+
+  function generateGrid() {
+    const cat=categories[Math.floor(Math.random()*categories.length)];
+    document.getElementById('reload-category').textContent=cat.prompt;
+    const shuffled=[...cat.distractors].sort(()=>Math.random()-0.5);
+    const words=[...cat.correct,...shuffled.slice(0,12)].sort(()=>Math.random()-0.5);
+    const grid=document.getElementById('reload-grid');grid.innerHTML='';
+    let found=0;
+    const updateScore=()=>{const t=Math.max(50,2000-(Date.now()-reloadStartTime));document.getElementById('reload-score').textContent='+'+t+' Points';};
+    updateScore();const si=setInterval(updateScore,100);
+    words.slice(0,16).forEach(w=>{
+      const cell=document.createElement('button');
+      cell.className='word-cell p-2 text-xs text-center rounded font-bold';cell.style.background='#f5deb3';cell.textContent=w;
+      cell.addEventListener('click',()=>{
+        if(cell.classList.contains('selected'))return;
+        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){clearInterval(si);const bonus=Math.max(50,2000-(Date.now()-reloadStartTime));overallScore+=bonus;ammo=maxAmmo;updateHUD();document.getElementById('reload-overlay').classList.add('hidden');reloadOpen=false;startEnemySpawning();}}
+        else{clearInterval(si);cell.classList.add('wrong');setTimeout(()=>generateGrid(),600);}
+      });
+      grid.appendChild(cell);
+    });
+  }
+
+  window.addEventListener('resize',()=>{if(gameActive)drawBackground();});
+  lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ad52e071a2d9bf',t:'MTc4Mzk5ODUxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
