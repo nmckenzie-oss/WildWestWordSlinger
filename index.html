@@ -35,6 +35,10 @@
     .question-text, #reload-category, #start-question-category { font-size: 18px; font-family: 'Lexend', sans-serif; color: #fff; }
     .normal-text, .desc-font { font-size: 16px; }
     .hud-value, .hud-icon { font-size: 14px; }
+    .shop-tab-active { box-shadow: 0 0 14px rgba(233,69,96,0.85) !important; border-color: #ff6b81 !important; background: linear-gradient(160deg, #5c1a75 0%, #33104a 100%) !important; }
+    .powerup-card { border-radius: 10px; padding: 12px; border: 1px solid var(--border-purple); background: rgba(106,5,114,0.15); }
+    .powerup-card.locked { opacity: 0.5; }
+    .powerup-card.equipped { border-color: var(--gold); box-shadow: 0 0 12px rgba(212,175,55,0.5); background: rgba(212,175,55,0.12); }
     .small-label { font-size: 12px; }
 
     body { image-rendering: pixelated; }
@@ -96,6 +100,10 @@
     .enemy-wrap.armor-flash { animation: armorFlash 0.15s ease; }
     @keyframes armorFlash { 0%{ filter: brightness(3); } 100%{ filter: brightness(1); } }
     .shock-ring { position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 4px solid #ff8800; pointer-events: none; animation: shockExpand 0.5s ease-out forwards; }
+    .falling-word { position: absolute; z-index: 25; padding: 6px 10px; border-radius: 8px; font-family: 'Lexend', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer; background: var(--panel-dark); color: #fff; border: 2px solid var(--border-purple); box-shadow: 0 0 8px rgba(233,69,96,0.4); }
+    .falling-word:hover { border-color: var(--accent-blue); }
+    #boss-wrap { animation: bossFloat 2.2s ease-in-out infinite; }
+    @keyframes bossFloat { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(8px); } }
     @keyframes shockExpand { from { width:20px; height:20px; opacity:1; margin-left:-10px; margin-top:-10px; } to { width:320px; height:320px; opacity:0; margin-left:-160px; margin-top:-160px; } }
     .floating-penalty { position: absolute; font-weight: 800; font-family: 'Lexend', sans-serif; font-size: 15px; pointer-events: none; z-index: 30; animation: floatUp 1.1s ease-out forwards; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
     @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-46px); } }
@@ -158,31 +166,42 @@
    </main>
   </div><!-- SHOP MODAL -->
   <div id="shop-modal" class="modal-overlay">
-   <div data-template-id="shop-panel" class="canva-card pixel-border p-5 rounded w-full max-w-sm mx-4 max-h-[85vh] overflow-y-auto">
-    <div class="flex justify-between items-center mb-4">
-     <h2 data-template-id="shop-title" class="canva-text title-font font-bold">Shop</h2><button onclick="closeShop()" class="text-yellow-300 text-2xl font-bold">×</button>
+   <div data-template-id="shop-panel" class="canva-card pixel-border p-4 rounded flex flex-col" style="width:100%;height:100%;max-width:100%;max-height:100%;">
+    <div class="flex justify-between items-center mb-2">
+     <h2 data-template-id="shop-title" class="canva-text title-font font-bold">Shop</h2>
+     <div class="flex items-center gap-3"><p id="shop-coins-display" class="text-sm text-yellow-300 desc-font">🪙 0</p><button onclick="closeShop()" class="text-yellow-300 text-2xl font-bold">×</button></div>
     </div>
-    <p id="shop-coins-display" class="text-sm text-yellow-300 mb-4 desc-font">🪙 0</p><!-- Bullet Upgrade -->
-    <div class="mb-3 p-3 rounded" style="background:rgba(106,5,114,0.18);border:1px solid var(--border-purple);">
-     <p data-template-id="bullet-upgrade-label" class="canva-text desc-font font-bold text-sm mb-1">🔫 Bullet Upgrade</p>
-     <p id="bullet-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Level 0 — Next: 10 🪙</p><button id="buy-bullet-btn" onclick="buyBulletUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
-    </div><!-- Extra Life Upgrade -->
-    <div class="mb-3 p-3 rounded" style="background:rgba(233,69,96,0.12);border:1px solid var(--accent-pink);">
-     <p class="canva-text desc-font font-bold text-sm mb-1">❤️ Extra Life</p>
-     <p id="life-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Start with 3 lives — Next: 15 🪙</p><button id="buy-life-btn" onclick="buyLifeUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
-    </div><!-- Combo Master Upgrade -->
-    <div class="mb-3 p-3 rounded" style="background:rgba(212,175,55,0.12);border:1px solid var(--gold);">
-     <p class="canva-text desc-font font-bold text-sm mb-1">🔥 Combo Master</p>
-     <p id="combo-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Level 0 — Next: 20 🪙</p><button id="buy-combo-btn" onclick="buyComboUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
-    </div><!-- Lucky Charm consumable -->
-    <div class="mb-3 p-3 rounded" style="background:rgba(0,212,255,0.10);border:1px solid var(--accent-blue);">
-     <p class="canva-text desc-font font-bold text-sm mb-1">🍀 Lucky Charm</p>
-     <p id="lucky-charm-info" class="text-xs text-gray-400 desc-font mb-2">Double coins earned on your NEXT run only — 30 🪙</p><button id="buy-charm-btn" onclick="buyLuckyCharm()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Charm</button>
-    </div><!-- Loot Box -->
-    <div class="p-3 rounded" style="background:rgba(106,5,114,0.18);border:1px solid var(--border-purple);">
-     <p data-template-id="lootbox-label" class="canva-text desc-font font-bold text-sm mb-1">🎁 Loot Box</p>
-     <p id="lootbox-info" class="text-xs text-gray-400 desc-font mb-2">20 🪙 — Random crosshair or death effect!</p><button id="buy-loot-btn" onclick="buyLootBox()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Open Loot Box</button>
-     <div id="loot-result" class="mt-3 text-center text-sm font-bold hidden"></div>
+    <div class="flex gap-2 mb-3">
+     <button id="shop-tab-btn-upgrades" onclick="switchShopTab('upgrades')" class="canva-button flex-1 py-2 pixel-border rounded font-bold text-xs uppercase">⚙️ Upgrades</button>
+     <button id="shop-tab-btn-powerups" onclick="switchShopTab('powerups')" class="canva-button flex-1 py-2 pixel-border rounded font-bold text-xs uppercase">⚡ Powerups</button>
+     <button id="shop-tab-btn-loot" onclick="switchShopTab('loot')" class="canva-button flex-1 py-2 pixel-border rounded font-bold text-xs uppercase">🎁 Loot Box</button>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+     <div id="shop-tab-upgrades" class="shop-tab-content"><!-- Bullet Upgrade -->
+      <div class="mb-3 p-3 rounded" style="background:rgba(106,5,114,0.18);border:1px solid var(--border-purple);">
+       <p data-template-id="bullet-upgrade-label" class="canva-text desc-font font-bold text-sm mb-1">🔫 Bullet Upgrade</p>
+       <p id="bullet-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Level 0 — Next: 10 🪙</p><button id="buy-bullet-btn" onclick="buyBulletUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
+      </div><!-- Extra Life Upgrade -->
+      <div class="mb-3 p-3 rounded" style="background:rgba(233,69,96,0.12);border:1px solid var(--accent-pink);">
+       <p class="canva-text desc-font font-bold text-sm mb-1">❤️ Extra Life</p>
+       <p id="life-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Start with 3 lives — Next: 15 🪙</p><button id="buy-life-btn" onclick="buyLifeUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
+      </div><!-- Combo Master Upgrade -->
+      <div class="p-3 rounded" style="background:rgba(212,175,55,0.12);border:1px solid var(--gold);">
+       <p class="canva-text desc-font font-bold text-sm mb-1">🔥 Combo Master</p>
+       <p id="combo-upgrade-info" class="text-xs text-gray-400 desc-font mb-2">Level 0 — Next: 20 🪙</p><button id="buy-combo-btn" onclick="buyComboUpgrade()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Buy Upgrade</button>
+      </div>
+     </div>
+     <div id="shop-tab-powerups" class="shop-tab-content hidden">
+      <p id="powerup-slots-info" class="text-xs text-gray-400 desc-font mb-3 text-center">1 powerup slot — equip up to 1 for your next run</p>
+      <div id="powerup-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+     </div>
+     <div id="shop-tab-loot" class="shop-tab-content hidden"><!-- Loot Box -->
+      <div class="p-3 rounded" style="background:rgba(106,5,114,0.18);border:1px solid var(--border-purple);">
+       <p data-template-id="lootbox-label" class="canva-text desc-font font-bold text-sm mb-1">🎁 Loot Box</p>
+       <p id="lootbox-info" class="text-xs text-gray-400 desc-font mb-2">20 🪙 — Random crosshair or death effect!</p><button id="buy-loot-btn" onclick="buyLootBox()" class="canva-button w-full py-2 pixel-border rounded font-bold text-sm">Open Loot Box</button>
+       <div id="loot-result" class="mt-3 text-center text-sm font-bold hidden"></div>
+      </div>
+     </div>
     </div>
    </div>
   </div><!-- INVENTORY MODAL -->
@@ -253,12 +272,21 @@
   let killCount=0, overallScore=0, sessionCoins=0, lives=3, ammo=5, maxAmmo=5;
   let gameActive=false, spawnInterval=null, reloadOpen=false, reloadStartTime=null;
   let gameOverReason='';
-  let sessionLuckyCharm=false;
   let comboStreak=0;
+
+  // Single-run powerup modifiers (reset every game, scaled by the pre-run quiz performance)
+  let runScoreMult=1, runCoinMult=1, runSpawnRateMult=1, runPerformance=0;
+  let activePowerupsThisRun=[];
+
+  // Stage / boss state
+  let stage=1, bossActive=false, bossHP=0, bossMaxHP=0, stageStartScore=0;
+  const STAGE_SCORE_STEP = 300; // score needed within a stage before the boss appears
 
   // Persistent state
   let playerData = null; // the SDK record
-  let highScore=0, totalCoins=0, bulletLevel=0, livesLevel=0, lootBoxCount=0, luckyCharmOwned=0, comboLevel=0;
+  let highScore=0, totalCoins=0, bulletLevel=0, livesLevel=0, lootBoxCount=0, comboLevel=0;
+  let totalCorrectAnswers=0;
+  let equippedPowerups=[]; // ids from POWERUPS the player has selected to run with
   let selectedBankCode='';
   let ownedCrosshairs=[], ownedEffects=[];
   let equippedCrosshair='', equippedEffect='';
@@ -297,6 +325,25 @@
     'Blue Ice':['#00ffff','#87ceeb','#b0e0e6','#4169e1']
   };
 
+  // Single-run powerups — unlocked by lifetime correct answers, equipped from the shop,
+  // magnitude scaled each run by a short pre-run quiz (accuracy + speed).
+  const POWERUPS = [
+    { id:'lucky',     name:'Lucky Charm',       icon:'🍀', unlockAt:40,
+      desc:'Before the run: 2 quick questions. The better & faster you answer, the bigger your score multiplier for that run.' },
+    { id:'stage',     name:'Stage Clear Bonus', icon:'🏁', unlockAt:80,
+      desc:'Before the run: 2 quick questions. Every stage you clear pays out bonus coins & score, scaled by that quiz.' },
+    { id:'golden',    name:'Golden Touch',      icon:'💰', unlockAt:120,
+      desc:'Before the run: 2 quick questions. The better you do, the more every coin is worth for that run.' },
+    { id:'overdrive', name:'Overdrive',         icon:'⚡', unlockAt:160,
+      desc:'Before the run: 2 quick questions. The better you do, the more enemies spawn — but coins & score are worth more too.' }
+  ];
+  function maxEquippedSlots() {
+    if (totalCorrectAnswers >= 400) return 4;
+    if (totalCorrectAnswers >= 300) return 3;
+    if (totalCorrectAnswers >= 200) return 2;
+    return 1;
+  }
+
   // Data SDK
   const dataHandler = {
     onDataChanged(data) {
@@ -307,7 +354,8 @@
         bulletLevel = playerData.bullet_upgrade_level || 0;
         livesLevel = playerData.lives_upgrade_level || 0;
         lootBoxCount = playerData.loot_box_count || 0;
-        luckyCharmOwned = playerData.lucky_charm_owned || 0;
+        totalCorrectAnswers = playerData.total_correct_answers || 0;
+        equippedPowerups = playerData.equipped_powerups ? playerData.equipped_powerups.split(',').filter(Boolean) : [];
         comboLevel = playerData.combo_upgrade_level || 0;
         selectedBankCode = playerData.selected_bank_code || '';
         ownedCrosshairs = playerData.owned_crosshairs ? playerData.owned_crosshairs.split(',').filter(Boolean) : [];
@@ -316,7 +364,8 @@
         equippedEffect = playerData.equipped_effect || '';
       } else {
         playerData = null;
-        highScore=0; totalCoins=0; bulletLevel=0; livesLevel=0; lootBoxCount=0; luckyCharmOwned=0; comboLevel=0;
+        highScore=0; totalCoins=0; bulletLevel=0; livesLevel=0; lootBoxCount=0; comboLevel=0;
+        totalCorrectAnswers=0; equippedPowerups=[];
         selectedBankCode='';
         ownedCrosshairs=[]; ownedEffects=[];
         equippedCrosshair=''; equippedEffect='';
@@ -346,7 +395,8 @@
       bullet_upgrade_level: bulletLevel,
       lives_upgrade_level: livesLevel,
       loot_box_count: lootBoxCount,
-      lucky_charm_owned: luckyCharmOwned,
+      total_correct_answers: totalCorrectAnswers,
+      equipped_powerups: equippedPowerups.join(','),
       combo_upgrade_level: comboLevel,
       selected_bank_code: selectedBankCode,
       owned_crosshairs: ownedCrosshairs.join(','),
@@ -402,16 +452,68 @@
   }
 
   // Shop
+  const SHOP_TABS = ['upgrades','powerups','loot'];
+  function switchShopTab(tab) {
+    SHOP_TABS.forEach(t => {
+      document.getElementById('shop-tab-'+t).classList.toggle('hidden', t!==tab);
+      document.getElementById('shop-tab-btn-'+t).classList.toggle('shop-tab-active', t===tab);
+    });
+  }
   function openShop() {
     document.getElementById('shop-modal').classList.add('open');
     document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
     updateBulletInfo();
     updateLifeInfo();
     updateComboUpgradeInfo();
-    updateLuckyCharmInfo();
     updateLootBoxInfo();
+    renderPowerups();
+    switchShopTab('upgrades');
     document.getElementById('loot-result').classList.add('hidden');
   }
+
+  function renderPowerups() {
+    const slots = maxEquippedSlots();
+    document.getElementById('powerup-slots-info').textContent =
+      slots + ' powerup slot' + (slots>1?'s':'') + ' — equip up to ' + slots + ' for your next run (' + totalCorrectAnswers + ' correct answers so far)';
+    const list = document.getElementById('powerup-list');
+    list.innerHTML = '';
+    POWERUPS.forEach(p => {
+      const unlocked = totalCorrectAnswers >= p.unlockAt;
+      const equipped = equippedPowerups.includes(p.id);
+      const card = document.createElement('div');
+      card.className = 'powerup-card' + (!unlocked ? ' locked' : '') + (equipped ? ' equipped' : '');
+      const title = document.createElement('p');
+      title.className = 'canva-text desc-font font-bold text-sm mb-1';
+      title.textContent = p.icon + ' ' + p.name + (equipped ? ' ✓' : '');
+      const desc = document.createElement('p');
+      desc.className = 'text-xs text-gray-400 desc-font mb-2';
+      desc.textContent = unlocked ? p.desc : ('🔒 Unlocks at ' + p.unlockAt + ' correct answers (' + totalCorrectAnswers + '/' + p.unlockAt + ')');
+      card.appendChild(title); card.appendChild(desc);
+      if (unlocked) {
+        const btn = document.createElement('button');
+        btn.className = 'canva-button w-full py-2 pixel-border rounded font-bold text-xs';
+        btn.textContent = equipped ? 'Unequip' : 'Equip';
+        btn.addEventListener('click', () => togglePowerup(p.id));
+        card.appendChild(btn);
+      }
+      list.appendChild(card);
+    });
+  }
+
+  async function togglePowerup(id) {
+    if (equippedPowerups.includes(id)) {
+      equippedPowerups = equippedPowerups.filter(x => x!==id);
+    } else {
+      if (equippedPowerups.length >= maxEquippedSlots()) {
+        showLootResult('No free powerup slots! Unequip one first.', '#e74c3c');
+        return;
+      }
+      equippedPowerups.push(id);
+    }
+    await safeSave();
+    renderPowerups();
+  }
+
   function closeShop() { document.getElementById('shop-modal').classList.remove('open'); }
 
   function updateBulletInfo() {
@@ -462,30 +564,6 @@
     document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
     updateComboUpgradeInfo();
     showLootResult('🔥 Combo power increased!', '#2ecc71');
-  }
-
-  function updateLuckyCharmInfo() {
-    const info = document.getElementById('lucky-charm-info');
-    const btn = document.getElementById('buy-charm-btn');
-    if (luckyCharmOwned > 0) {
-      info.textContent = '🍀 Charm ready! Coins are doubled for your next run.';
-      btn.textContent = 'Charm Active';
-      btn.disabled = true;
-    } else {
-      info.textContent = 'Double coins earned on your NEXT run only — 30 🪙';
-      btn.textContent = 'Buy Charm';
-      btn.disabled = false;
-    }
-  }
-  async function buyLuckyCharm() {
-    if (luckyCharmOwned > 0) return;
-    if (totalCoins < 30) { showLootResult('Not enough coins!', '#e74c3c'); return; }
-    totalCoins -= 30;
-    luckyCharmOwned = 1;
-    await safeSave();
-    document.getElementById('shop-coins-display').textContent = '🪙 ' + totalCoins;
-    updateLuckyCharmInfo();
-    showLootResult('🍀 Lucky Charm ready for your next run!', '#2ecc71');
   }
 
   function lootBoxCost() { return Math.round(20 * Math.pow(1.5, lootBoxCount)); }
@@ -689,7 +767,7 @@
     '112cf': 'question-banks/year-11-chemistry-full.json'
   };
 
-  let loadedCategories = null;  // array of {prompt,correct,distractors} once a bank is active, else null (fallback word game)
+  let loadedCategories = null;  // array of {prompt,correct,distractors} once a valid class code is entered — required to play
   let loadedBankCode = '';
   let loadedBankName = '';
 
@@ -721,19 +799,10 @@
       el.textContent = '📚 Loaded: ' + loadedBankName;
       el.style.color = '#2ecc71';
     } else {
-      el.textContent = 'Using default word game';
+      el.textContent = 'Enter your class code to play';
       el.style.color = '#9aa0a6';
     }
   }
-
-  const categories = [
-    { prompt:"Colours", correct:["Red","Blue","Yellow","Green"], distractors:["Pizza","Chair","Clock","Socks","Dance","Book","Spoon","Happy","Snow","Beach","Music","Dream"] },
-    { prompt:"Animals", correct:["Dog","Cat","Bird","Fish"], distractors:["Car","House","Tree","Shoe","Ball","Cup","Fork","Plate","Door","Star","Moon","Cloud"] },
-    { prompt:"Fruits", correct:["Apple","Banana","Orange","Strawberry"], distractors:["Bread","Milk","Egg","Cheese","Rice","Bean","Salt","Pepper","Meat","Soup","Juice","Cake"] },
-    { prompt:"Things at the Beach", correct:["Sand","Water","Shell","Crab"], distractors:["Snow","Rock","Dirt","Leaf","Tree","Flower","Grass","Branch","Root","Weed","Moss","Vine"] },
-    { prompt:"Body Parts", correct:["Head","Arm","Leg","Foot"], distractors:["Toe","Ear","Nose","Hand","Eye","Chin","Hair","Smile","Laugh","Jump","Run","Dance"] },
-    { prompt:"Toys", correct:["Ball","Doll","Bike","Kite"], distractors:["Sock","Hat","Coat","Shoe","Belt","Shirt","Pants","Tie","Glove","Scarf","Boot","Bag"] },
-  ];
 
   // ===== Procedural western pixel-art character renderer =====
   // 32x32 block grid at 4px per block = 128x128 canvas. Higher detail: shading, seams, brim, cuffs.
@@ -909,43 +978,50 @@
     setTimeout(() => el.remove(), 1100);
   }
 
-  function drawBackground() {
+  const STAGE_PALETTES = [
+    { skyTop:'#0a0a0a', skyMid:'#1a0a2e', skyBot:'#3d1240', mesa1:'rgba(106,5,114,0.45)', mesa2:'rgba(233,69,96,0.28)', groundTop:'#3a1a48', groundBot:'#150826', groundLine:'#e94560', sand:'rgba(233,69,96,0.15)', cactus:'rgba(46,204,113,0.35)', fence:'#241028', fenceRail:'#3a1a48', sunCore:'#e9c05a', sunGlow:'#ffe6a8' },
+    { skyTop:'#04060f', skyMid:'#0a1a3d', skyBot:'#123d5c', mesa1:'rgba(0,80,120,0.5)', mesa2:'rgba(0,150,180,0.25)', groundTop:'#0e2a44', groundBot:'#081420', groundLine:'#00d4ff', sand:'rgba(0,212,255,0.14)', cactus:'rgba(0,150,120,0.3)', fence:'#0a1420', fenceRail:'#0e2a44', sunCore:'#dfefff', sunGlow:'#8fd8ff' },
+    { skyTop:'#0a0505', skyMid:'#2a0a0a', skyBot:'#4a1010', mesa1:'rgba(140,20,20,0.45)', mesa2:'rgba(200,80,20,0.28)', groundTop:'#3a1010', groundBot:'#150505', groundLine:'#ff6b3d', sand:'rgba(255,107,61,0.15)', cactus:'rgba(120,60,20,0.35)', fence:'#1a0a0a', fenceRail:'#3a1010', sunCore:'#ffb347', sunGlow:'#ff8844' }
+  ];
+
+  function drawBackground(stageNum) {
+    const pal = STAGE_PALETTES[((stageNum||1)-1) % STAGE_PALETTES.length];
     const canvas=document.getElementById('bg-canvas');
     const w=canvas.parentElement.clientWidth, h=canvas.parentElement.clientHeight;
     canvas.width=w;canvas.height=h;
     const ctx=canvas.getContext('2d');
     const horizon = h*0.62;
-    // Dusk sky gradient
+    // Sky gradient
     const sky=ctx.createLinearGradient(0,0,0,horizon);
-    sky.addColorStop(0,'#0a0a0a'); sky.addColorStop(0.5,'#1a0a2e'); sky.addColorStop(1,'#3d1240');
+    sky.addColorStop(0,pal.skyTop); sky.addColorStop(0.5,pal.skyMid); sky.addColorStop(1,pal.skyBot);
     ctx.fillStyle=sky; ctx.fillRect(0,0,w,horizon);
     // Sun
     const sunGrad = ctx.createRadialGradient(w*0.82,horizon*0.35,4,w*0.82,horizon*0.35,60);
-    sunGrad.addColorStop(0,'#ffe6a8'); sunGrad.addColorStop(0.4,'#d4af37'); sunGrad.addColorStop(1,'rgba(212,175,55,0)');
+    sunGrad.addColorStop(0,pal.sunGlow); sunGrad.addColorStop(0.4,pal.sunCore); sunGrad.addColorStop(1,'rgba(212,175,55,0)');
     ctx.fillStyle=sunGrad; ctx.beginPath(); ctx.arc(w*0.82,horizon*0.35,60,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#e9c05a'; ctx.beginPath(); ctx.arc(w*0.82,horizon*0.35,26,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=pal.sunCore; ctx.beginPath(); ctx.arc(w*0.82,horizon*0.35,26,0,Math.PI*2); ctx.fill();
     // Distant mesas (layered silhouettes)
-    ctx.fillStyle='rgba(106,5,114,0.45)';
+    ctx.fillStyle=pal.mesa1;
     ctx.beginPath(); ctx.moveTo(0,horizon);
     ctx.lineTo(0,horizon-40); ctx.lineTo(w*0.12,horizon-40); ctx.lineTo(w*0.16,horizon-70); ctx.lineTo(w*0.28,horizon-70); ctx.lineTo(w*0.32,horizon-35);
     ctx.lineTo(w*0.55,horizon-35); ctx.lineTo(w*0.6,horizon-60); ctx.lineTo(w*0.7,horizon-60); ctx.lineTo(w*0.74,horizon-25);
     ctx.lineTo(w,horizon-25); ctx.lineTo(w,horizon); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='rgba(233,69,96,0.28)';
+    ctx.fillStyle=pal.mesa2;
     ctx.beginPath(); ctx.moveTo(0,horizon);
     ctx.lineTo(w*0.05,horizon-22); ctx.lineTo(w*0.2,horizon-22); ctx.lineTo(w*0.24,horizon-45); ctx.lineTo(w*0.4,horizon-45); ctx.lineTo(w*0.44,horizon-18);
     ctx.lineTo(w*0.68,horizon-18); ctx.lineTo(w*0.72,horizon-38); ctx.lineTo(w*0.88,horizon-38); ctx.lineTo(w*0.92,horizon-12);
     ctx.lineTo(w,horizon-12); ctx.lineTo(w,horizon); ctx.closePath(); ctx.fill();
-    // Desert ground
+    // Ground
     const ground=ctx.createLinearGradient(0,horizon,0,h);
-    ground.addColorStop(0,'#3a1a48'); ground.addColorStop(1,'#150826');
+    ground.addColorStop(0,pal.groundTop); ground.addColorStop(1,pal.groundBot);
     ctx.fillStyle=ground; ctx.fillRect(0,horizon,w,h-horizon);
-    ctx.fillStyle='#e94560'; ctx.fillRect(0,horizon,w,3);
-    // Sand texture speckles
-    ctx.fillStyle='rgba(233,69,96,0.15)';
+    ctx.fillStyle=pal.groundLine; ctx.fillRect(0,horizon,w,3);
+    // Texture speckles
+    ctx.fillStyle=pal.sand;
     for (let i=0;i<40;i++){ const sx=(i*97)%w, sy=horizon+((i*53)%(h-horizon)); ctx.fillRect(sx,sy,3,1); }
     // Cacti silhouettes
     function cactus(cx, baseY, scale) {
-      ctx.fillStyle='rgba(46,204,113,0.35)';
+      ctx.fillStyle=pal.cactus;
       ctx.fillRect(cx-4*scale, baseY-40*scale, 8*scale, 40*scale);
       ctx.fillRect(cx-16*scale, baseY-26*scale, 8*scale, 6*scale);
       ctx.fillRect(cx-16*scale, baseY-32*scale, 6*scale, 14*scale);
@@ -955,33 +1031,119 @@
     cactus(w*0.1, horizon+30, 0.9);
     cactus(w*0.92, horizon+45, 1.2);
     // Wooden fence in foreground
-    ctx.fillStyle='#241028';
+    ctx.fillStyle=pal.fence;
     for (let fx=-10; fx<w+30; fx+=46) { ctx.fillRect(fx, h-46, 6, 46); }
-    ctx.fillStyle='#3a1a48';
+    ctx.fillStyle=pal.fenceRail;
     ctx.fillRect(0, h-34, w, 6);
     ctx.fillRect(0, h-18, w, 6);
   }
 
   function startGame() {
+    if (!loadedCategories || !loadedCategories.length) {
+      const statusEl = document.getElementById('code-status');
+      if (statusEl) { statusEl.textContent = '⚠️ Enter a valid class code to play'; statusEl.style.color = '#e74c3c'; }
+      showScreen('home-screen');
+      return;
+    }
     killCount=0; overallScore=0; sessionCoins=0; lives=3+livesLevel;
     ammo=maxAmmo; gameActive=false; reloadOpen=false; gameOverReason='';
-    sessionLuckyCharm = luckyCharmOwned > 0;
     comboStreak=0;
+    runScoreMult=1; runCoinMult=1; runSpawnRateMult=1; runPerformance=0;
+    activePowerupsThisRun=[...equippedPowerups];
+    stage=1; bossActive=false; bossHP=0; bossMaxHP=0; stageStartScore=0;
+    clearInterval(bossWordInterval);
     updateHUD(); showScreen('game-screen');
     const area=document.getElementById('game-area');
-    area.querySelectorAll('.enemy-wrap').forEach(e=>{ stopTeleport(e); stopDrain(e); if(e._expireTimer) clearTimeout(e._expireTimer); e.remove(); });
+    area.querySelectorAll('.enemy-wrap, .falling-word').forEach(e=>{ stopTeleport(e); stopDrain(e); if(e._expireTimer) clearTimeout(e._expireTimer); e.remove(); });
+    const bw=document.getElementById('boss-wrap'); if(bw) bw.remove();
+    const bh=document.getElementById('boss-health-bar-wrap'); if(bh) bh.remove();
     document.getElementById('reload-overlay').classList.add('hidden');
-    setTimeout(drawBackground,50);
+    setTimeout(()=>drawBackground(stage),50);
     updateCrosshairCursor();
-    // Show start question
-    showStartQuestion();
+    if (activePowerupsThisRun.length > 0) {
+      startPowerupAssessment();
+    } else {
+      showStartQuestion();
+    }
+  }
+
+  // ===== Pre-run powerup assessment: 2 quick rounds, accuracy+speed set this run's multipliers =====
+  let preRunRoundIndex = 0;
+  let preRunScores = [];
+  let preRunRoundStart = 0;
+  let preRunMistakes = 0;
+
+  function startPowerupAssessment() {
+    preRunRoundIndex = 0;
+    preRunScores = [];
+    showPowerupAssessmentRound();
+  }
+
+  function showPowerupAssessmentRound() {
+    preRunMistakes = 0;
+    preRunRoundStart = Date.now();
+    const cat = loadedCategories[Math.floor(Math.random()*loadedCategories.length)];
+    document.getElementById('start-question-category').textContent =
+      '⚡ Powerup Check ' + (preRunRoundIndex+1) + '/2 — ' + cat.prompt;
+    const shuffled=[...cat.distractors].sort(()=>Math.random()-0.5);
+    const words=[...cat.correct,...shuffled.slice(0,12)].sort(()=>Math.random()-0.5);
+    const grid=document.getElementById('start-question-grid');grid.innerHTML='';grid.className='grid grid-cols-4 gap-2';
+    let found=0;
+    words.slice(0,16).forEach(w=>{
+      const cell=document.createElement('button');
+      cell.className='word-cell p-2 text-xs text-center rounded font-bold';cell.textContent=w;
+      cell.addEventListener('click',()=>{
+        if(cell.classList.contains('selected')||cell.classList.contains('wrong'))return;
+        if(cat.correct.includes(w)){
+          cell.classList.add('selected');found++;
+          if(found>=cat.correct.length){ finishPowerupAssessmentRound(); }
+        } else {
+          cell.classList.add('wrong'); preRunMistakes++;
+        }
+      });
+      grid.appendChild(cell);
+    });
+    document.getElementById('start-question-overlay').classList.remove('hidden');
+  }
+
+  function finishPowerupAssessmentRound() {
+    const timeMs = Date.now() - preRunRoundStart;
+    totalCorrectAnswers++; safeSave();
+    const speedScore = Math.max(0.2, Math.min(1, 1 - timeMs/8000));
+    const accuracyScore = Math.max(0, 1 - preRunMistakes*0.25);
+    preRunScores.push((speedScore + accuracyScore) / 2);
+    preRunRoundIndex++;
+    if (preRunRoundIndex < 2) {
+      setTimeout(showPowerupAssessmentRound, 300);
+    } else {
+      runPerformance = preRunScores.reduce((a,b)=>a+b,0) / preRunScores.length;
+      applyPowerupEffects();
+      document.getElementById('start-question-overlay').classList.add('hidden');
+      showStartQuestion();
+    }
+  }
+
+  function applyPowerupEffects() {
+    const p = runPerformance; // 0..1
+    if (activePowerupsThisRun.includes('lucky')) {
+      runScoreMult *= (1 + p*1.5); // up to 2.5x
+    }
+    if (activePowerupsThisRun.includes('golden')) {
+      runCoinMult *= (1 + p*1.5); // up to 2.5x
+    }
+    if (activePowerupsThisRun.includes('overdrive')) {
+      runSpawnRateMult *= (1 - p*0.4); // faster spawns, down to 0.6x delay
+      runCoinMult *= (1 + p*0.8);
+      runScoreMult *= (1 + p*0.8);
+    }
+    // 'stage' powerup is paid out on stage-clear directly using runPerformance, see clearStage()
   }
 
   function getSpawnDelay() {
     // Progressively increase difficulty: spawn delay decreases as score increases
     // At score 0: 1400ms, at score 500: 700ms, at score 1000+: 400ms
     const baseTier = Math.floor(overallScore / 250);
-    return Math.max(400, 1400 - baseTier * 100);
+    return Math.max(250, Math.round((1400 - baseTier * 100) * runSpawnRateMult));
   }
 
   function getEnemyLifetime() {
@@ -992,7 +1154,7 @@
   }
 
   function showStartQuestion() {
-    const source = (loadedCategories && loadedCategories.length) ? loadedCategories : categories;
+    const source = loadedCategories;
     const cat=source[Math.floor(Math.random()*source.length)];
     document.getElementById('start-question-category').textContent=cat.prompt;
     const shuffled=[...cat.distractors].sort(()=>Math.random()-0.5);
@@ -1004,7 +1166,7 @@
       cell.className='word-cell p-2 text-xs text-center rounded font-bold';cell.textContent=w;
       cell.addEventListener('click',()=>{
         if(cell.classList.contains('selected'))return;
-        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){document.getElementById('start-question-overlay').classList.add('hidden');startEnemySpawning();}}
+        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){totalCorrectAnswers++;safeSave();document.getElementById('start-question-overlay').classList.add('hidden');startEnemySpawning();}}
         else{cell.classList.add('wrong');setTimeout(()=>showStartQuestion(),600);}
       });
       grid.appendChild(cell);
@@ -1136,12 +1298,11 @@
       spawnDeathEffect(x,y,area);
       el.style.transition='transform 0.25s, opacity 0.25s';
       el.style.transform='scale(0) rotate(90deg)';el.style.opacity='0';
-      overallScore = Math.max(0, overallScore - type.penaltyScore);
+      overallScore -= type.penaltyScore;
       lives = Math.max(0, lives - type.penaltyLives);
       showFloatingText(x,y,'-'+type.penaltyScore+' '+type.warning,'#e74c3c',area);
       updateHUD(); updateEnemySpawning();
       setTimeout(()=>el.remove(),300);
-      if (overallScore<=0) { gameOverReason='Score hit zero!'; endGame(); return; }
       if (lives<=0) { gameOverReason='Ran out of lives!'; endGame(); return; }
       return;
     }
@@ -1162,11 +1323,11 @@
     spawnDeathEffect(x,y,area);
     el.style.transition='transform 0.25s, opacity 0.25s';
     el.style.transform='scale(0) rotate(90deg)';el.style.opacity='0';
-    const coinMult = sessionLuckyCharm ? 2 : 1;
+    const coinMult = runCoinMult;
     comboStreak++;
-    const mult = getComboMultiplier();
+    const mult = getComboMultiplier() * runScoreMult;
     const scoreGain = Math.round(type.score * mult);
-    killCount++;overallScore+=scoreGain;sessionCoins+=type.coins*coinMult;
+    killCount++;overallScore+=scoreGain;sessionCoins+=Math.round(type.coins*coinMult);
     showFloatingText(x,y,'+'+scoreGain+(mult>1?' ('+mult.toFixed(1)+'x)':''),'#2ecc71',area);
 
     // Vulture Scout: refunds a shot when downed
@@ -1190,8 +1351,8 @@
           stopTeleport(other); stopDrain(other);
           const otherType = ENEMY_TYPES.find(t=>t.id===other.dataset.type) || ENEMY_TYPES[0];
           comboStreak++;
-          const otherGain = Math.round(otherType.score * getComboMultiplier());
-          killCount++; overallScore+=otherGain; sessionCoins+=otherType.coins*coinMult;
+          const otherGain = Math.round(otherType.score * getComboMultiplier() * runScoreMult);
+          killCount++; overallScore+=otherGain; sessionCoins+=Math.round(otherType.coins*coinMult);
           spawnDeathEffect(ox,oy,area);
           other.style.transition='transform 0.25s, opacity 0.25s';
           other.style.transform='scale(0) rotate(90deg)';other.style.opacity='0';
@@ -1200,15 +1361,20 @@
       });
     }
 
-    updateHUD();updateEnemySpawning();setTimeout(()=>el.remove(),300);
+    updateHUD();updateEnemySpawning();checkStageProgress();setTimeout(()=>el.remove(),300);
   }
 
   async function endGame() {
     gameActive=false;clearInterval(spawnInterval);
     document.getElementById('game-area').querySelectorAll('.enemy-wrap').forEach(e=>{ if(e._teleportTimer) clearInterval(e._teleportTimer); });
+    if (bossActive) {
+      bossActive=false; clearInterval(bossWordInterval);
+      document.querySelectorAll('.falling-word').forEach(w=>w.remove());
+      const bw=document.getElementById('boss-wrap'); if(bw) bw.remove();
+      const bh=document.getElementById('boss-health-bar-wrap'); if(bh) bh.remove();
+    }
     updateCrosshairCursor();
     totalCoins+=sessionCoins;
-    if (sessionLuckyCharm) { luckyCharmOwned = 0; sessionLuckyCharm = false; }
     const newHigh = overallScore > highScore;
     if(newHigh) highScore=overallScore;
     try { await saveData(); } catch(e) { console.error('saveData failed', e); }
@@ -1227,8 +1393,123 @@
     }
   }
 
+  // ===== Stages & Boss Fights =====
+  const BOSS_TYPES = [drawArmored, drawGhostRider, drawDynamiteBandit, drawVulture, drawCardShark];
+  let bossWordInterval = null;
+
+  function checkStageProgress() {
+    if (!gameActive || bossActive) return;
+    if (overallScore - stageStartScore >= STAGE_SCORE_STEP) {
+      startBossFight();
+    }
+  }
+
+  function startBossFight() {
+    bossActive = true;
+    clearInterval(spawnInterval);
+    const area = document.getElementById('game-area');
+    area.querySelectorAll('.enemy-wrap').forEach(e=>{ stopTeleport(e); stopDrain(e); if(e._expireTimer) clearTimeout(e._expireTimer); e.remove(); });
+    bossMaxHP = 80 + stage*40; bossHP = bossMaxHP;
+
+    const wrap=document.createElement('div');
+    wrap.id='boss-wrap';
+    wrap.style.cssText='position:absolute;left:50%;top:34px;transform:translateX(-50%);width:150px;height:150px;cursor:crosshair;z-index:15;';
+    const canvas=document.createElement('canvas');
+    canvas.width=128;canvas.height=128;canvas.style.width='150px';canvas.style.height='150px';
+    const bossDraw = BOSS_TYPES[(stage-1)%BOSS_TYPES.length];
+    bossDraw(canvas.getContext('2d'));
+    wrap.appendChild(canvas);
+    wrap.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      if (!bossActive || ammo<=0) return;
+      ammo--; damageBoss(5, area); updateHUD();
+    });
+    area.appendChild(wrap);
+
+    const barWrap=document.createElement('div');
+    barWrap.id='boss-health-bar-wrap';
+    barWrap.style.cssText='position:absolute;left:50%;top:8px;transform:translateX(-50%);width:240px;z-index:16;';
+    barWrap.innerHTML='<div style="background:#1a0a2e;border:2px solid var(--border-purple);border-radius:6px;height:16px;overflow:hidden;"><div id="boss-health-fill" style="background:linear-gradient(90deg,#e74c3c,#ff6b81);height:100%;width:100%;transition:width 0.2s;"></div></div><p id="boss-name-label" class="text-center text-xs font-bold" style="color:#fff;text-shadow:0 1px 3px #000;margin-top:2px;"></p>';
+    area.appendChild(barWrap);
+
+    const cat = loadedCategories[Math.floor(Math.random()*loadedCategories.length)];
+    document.getElementById('boss-name-label').textContent = '👹 Stage ' + stage + ' Boss — tap: ' + cat.prompt;
+    showFloatingText(area.clientWidth/2-60, area.clientHeight/2-20, '⚠️ BOSS FIGHT ⚠️', '#e74c3c', area);
+
+    bossWordInterval = setInterval(()=>spawnFallingWord(cat), 1100);
+  }
+
+  function spawnFallingWord(cat) {
+    if (!bossActive) return;
+    const area = document.getElementById('game-area');
+    const pool = [...cat.correct, ...cat.distractors.slice(0,8)];
+    const word = pool[Math.floor(Math.random()*pool.length)];
+    const isCorrect = cat.correct.includes(word);
+    const el = document.createElement('button');
+    el.className = 'falling-word';
+    el.textContent = word;
+    const areaW = area.clientWidth, areaH = area.clientHeight;
+    el.style.left = Math.max(4, Math.random()*(areaW-100)) + 'px';
+    el.style.top = '-40px';
+    area.appendChild(el);
+    const fallDuration = 5200;
+    requestAnimationFrame(()=>{
+      el.style.transition = 'top '+fallDuration+'ms linear';
+      el.style.top = (areaH-20) + 'px';
+    });
+    el.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      if (!bossActive || el.dataset.dead) return;
+      el.dataset.dead='1';
+      const x = parseFloat(el.style.left), y = parseFloat(el.style.top) || 0;
+      if (isCorrect) {
+        spawnDeathEffect(x,y,area);
+        damageBoss(12, area);
+        ammo = Math.min(maxAmmo, ammo+1);
+        showFloatingText(x,y-16,'+1 Ammo','#00d4ff',area);
+      } else {
+        ammo = Math.max(0, ammo-1);
+        lives = Math.max(0, lives-1);
+        showFloatingText(x,y-16,'Wrong!','#e74c3c',area);
+        if (lives<=0) { gameOverReason='Ran out of lives!'; endGame(); }
+      }
+      updateHUD();
+      el.remove();
+    });
+    setTimeout(()=>{ if (el.parentNode && !el.dataset.dead) el.remove(); }, fallDuration+150);
+  }
+
+  function damageBoss(amount, area) {
+    if (!bossActive) return;
+    bossHP = Math.max(0, bossHP - amount);
+    const fill = document.getElementById('boss-health-fill');
+    if (fill) fill.style.width = (bossMaxHP>0 ? (bossHP/bossMaxHP*100) : 0) + '%';
+    if (bossHP <= 0) defeatBoss(area);
+  }
+
+  function defeatBoss(area) {
+    bossActive = false;
+    clearInterval(bossWordInterval);
+    area.querySelectorAll('.falling-word').forEach(w=>w.remove());
+    const bossWrap = document.getElementById('boss-wrap'); if (bossWrap) bossWrap.remove();
+    const barWrap = document.getElementById('boss-health-bar-wrap'); if (barWrap) barWrap.remove();
+
+    if (activePowerupsThisRun.includes('stage')) {
+      const bonusCoins = Math.round(100 * runPerformance);
+      const bonusScore = Math.round(150 * runPerformance);
+      sessionCoins += bonusCoins; overallScore += bonusScore;
+      showFloatingText(area.clientWidth/2-70, 70, '+'+bonusScore+' score / +'+bonusCoins+'🪙 Stage Bonus!', '#d4af37', area);
+    }
+    stage++;
+    stageStartScore = overallScore;
+    showFloatingText(area.clientWidth/2-70, 40, '🏁 Stage ' + stage + ' — onward!', '#2ecc71', area);
+    drawBackground(stage);
+    updateHUD();
+    if (gameActive) spawnInterval = setInterval(spawnEnemy, getSpawnDelay());
+  }
+
   function openReload() {
-    if(reloadOpen||ammo===maxAmmo)return;
+    if(reloadOpen||ammo===maxAmmo||bossActive)return;
     reloadOpen=true;gameActive=false;clearInterval(spawnInterval);
     // Pause every active enemy/decoy's timers so nothing vanishes while you reload
     document.querySelectorAll('#game-area .enemy-wrap').forEach(w=>{
@@ -1254,21 +1535,21 @@
   }
 
   function generateGrid() {
-    const source = (loadedCategories && loadedCategories.length) ? loadedCategories : categories;
+    const source = loadedCategories;
     const cat=source[Math.floor(Math.random()*source.length)];
     document.getElementById('reload-category').textContent=cat.prompt;
     const shuffled=[...cat.distractors].sort(()=>Math.random()-0.5);
     const words=[...cat.correct,...shuffled.slice(0,12)].sort(()=>Math.random()-0.5);
     const grid=document.getElementById('reload-grid');grid.innerHTML='';grid.className='grid grid-cols-4 gap-2';
     let found=0;
-    const updateScore=()=>{const t=Math.max(50,2000-(Date.now()-reloadStartTime)/2);document.getElementById('reload-score').textContent='+'+t+' Points';};
+    const updateScore=()=>{const t=Math.max(50,2000-(Date.now()-reloadStartTime)/4);document.getElementById('reload-score').textContent='+'+t+' Points';};
     updateScore();const si=setInterval(updateScore,100);
     words.slice(0,16).forEach(w=>{
       const cell=document.createElement('button');
       cell.className='word-cell p-2 text-xs text-center rounded font-bold';cell.textContent=w;
       cell.addEventListener('click',()=>{
         if(cell.classList.contains('selected'))return;
-        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){clearInterval(si);const bonus=Math.max(50,2000-(Date.now()-reloadStartTime)/2);overallScore+=bonus;ammo=maxAmmo;updateHUD();closeReload();}}
+        if(cat.correct.includes(w)){cell.classList.add('selected');found++;if(found>=cat.correct.length){clearInterval(si);totalCorrectAnswers++;safeSave();const bonus=Math.max(50,2000-(Date.now()-reloadStartTime)/4);overallScore+=bonus;ammo=maxAmmo;updateHUD();closeReload();checkStageProgress();}}
         else{clearInterval(si);cell.classList.add('wrong');setTimeout(()=>generateGrid(),600);}
       });
       grid.appendChild(cell);
@@ -1285,7 +1566,7 @@
     updateEnemySpawning();
   });
 
-  window.addEventListener('resize',()=>{if(gameActive)drawBackground();});
+  window.addEventListener('resize',()=>{if(gameActive)drawBackground(stage);});
   lucide.createIcons();
 </script>
  <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1ad52e071a2d9bf',t:'MTc4Mzk5ODUxNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
